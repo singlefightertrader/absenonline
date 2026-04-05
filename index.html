@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GIP | COMMANDER V44</title>
+    <style>
+        :root { --neon: #00ff9d; --alert: #ff0055; --bg: #000; --glass: rgba(0, 20, 10, 0.95); }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Courier New', monospace; }
+        
+        /* FIX: BODY BISA DI-SCROLL TANPA MATIKAN EFEK */
+        body { 
+            background: var(--bg); color: var(--neon); 
+            min-height: 100vh; width: 100%; overflow-y: auto; 
+            display: flex; justify-content: center; padding: 20px 10px;
+        }
+
+        /* MATRIX FIXED BACKDROP */
+        #matrix-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.4; pointer-events: none; }
+
+        /* SCANLINES EFFECT */
+        .scanlines { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: none; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); background-size: 100% 3px, 2px 100%; }
+
+        .mainframe { 
+            width: 100%; max-width: 650px; background: var(--glass); 
+            border: 2px solid var(--neon); border-radius: 12px; padding: 20px;
+            box-shadow: 0 0 40px rgba(0, 255, 157, 0.3); position: relative; margin-bottom: 50px;
+        }
+
+        .header { text-align: center; border-bottom: 2px double var(--neon); padding-bottom: 15px; margin-bottom: 20px; }
+        .header h1 { font-size: 1.4rem; letter-spacing: 4px; cursor: pointer; text-shadow: 0 0 15px var(--neon); }
+        .header p { font-size: 10px; opacity: 0.6; margin-top: 5px; color: #fff; }
+
+        /* ADMIN PANEL RAHASIA (KETUK JUDUL 5X) */
+        #admin-panel { display: none; background: #080808; border: 1px dashed gold; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+        .admin-input { width: 100%; padding: 12px; background: #000; border: 1px solid var(--neon); color: gold; font-size: 12px; margin-bottom: 10px; border-radius: 5px; outline: none; }
+
+        /* VIDEO AREA + HUD */
+        .visual-box { position: relative; width: 100%; height: 320px; border: 1px solid var(--neon); border-radius: 10px; overflow: hidden; background: #000; }
+        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+        
+        .laser-scan { position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: var(--neon); box-shadow: 0 0 20px var(--neon); z-index: 5; animation: scanAnim 3s linear infinite; display: none; }
+        @keyframes scanAnim { 0% { top: 0%; } 50% { top: 100%; } 100% { top: 0%; } }
+
+        .hud-ui { position: absolute; font-size: 8px; padding: 8px; pointer-events: none; z-index: 6; text-transform: uppercase; color: rgba(0,255,157,0.8); font-weight: bold; }
+        .hud-tl { top: 5px; left: 5px; border-left: 2px solid var(--neon); border-top: 2px solid var(--neon); }
+        .hud-br { bottom: 5px; right: 5px; border-right: 2px solid var(--neon); border-bottom: 2px solid var(--neon); color: var(--alert); }
+
+        /* INPUTS & BUTTONS */
+        .controls { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+        input#nama { width: 100%; padding: 20px; background: rgba(0,0,0,0.7); border: 1px solid var(--neon); color: var(--neon); text-align: center; font-size: 1.3rem; border-radius: 10px; outline: none; font-weight: bold; }
+        
+        .btn { width: 100%; padding: 22px; font-weight: 900; cursor: pointer; border: none; border-radius: 10px; text-transform: uppercase; letter-spacing: 3px; transition: 0.3s; }
+        .btn-init { background: var(--neon); color: #000; box-shadow: 0 0 20px rgba(0, 255, 157, 0.4); }
+        .btn-abs { background: var(--alert); color: #fff; box-shadow: 0 0 20px rgba(255, 0, 85, 0.4); }
+        .btn:active { transform: scale(0.96); filter: brightness(1.3); }
+
+        /* LOG TERMINAL */
+        .terminal-log { background: #000; padding: 15px; font-size: 11px; border-left: 3px solid var(--neon); min-height: 110px; color: #0f0; margin-top: 20px; border-radius: 5px; overflow-y: auto; line-height: 1.6; }
+    </style>
+</head>
+<body>
+
+<canvas id="matrix-bg"></canvas>
+<div class="scanlines"></div>
+
+<div class="mainframe">
+    <div class="header">
+        <h1 onclick="toggleAdmin()">GIP_COMMANDER_V44</h1>
+        <p>[ ZONE: GIS 150kV JKT11 | SECURED TERMINAL ]</p>
+    </div>
+
+    <div id="admin-panel">
+        <p style="color:gold; font-size:10px; margin-bottom:10px;">⚙️ ADMIN CONFIGURATION</p>
+        <input type="password" id="adm_pass" class="admin-input" placeholder="PASSWORD ADMIN (Default: JKT11DANRU)">
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="adm_lat" class="admin-input" placeholder="LAT JKT11">
+            <input type="text" id="adm_lng" class="admin-input" placeholder="LNG JKT11">
+        </div>
+        <button onclick="saveAdmin()" style="width:100%; padding:12px; background:gold; border:none; font-weight:bold; border-radius:5px; cursor:pointer; color:#000;">SAVE & LOCK SETTINGS</button>
+    </div>
+
+    <div class="visual-box">
+        <div class="hud-ui hud-tl">STATUS: ENCRYPTED<br>VOLTAGE: 150kV<br>SCAN: ACTIVE</div>
+        <div class="hud-ui hud-br">TARGET: JKT11<br>OP: AUTHORIZED<br>VER: V44.0</div>
+        <div class="laser-scan" id="ls"></div>
+        <video id="v" autoplay playsinline></video>
+    </div>
+
+    <div class="controls">
+        <input type="text" id="nama" placeholder="NAMA LENGKAP OPERATOR">
+        <button class="btn btn-init" onclick="initSystem()">[ 1 ] BOOT SENSOR BIOMETRIK</button>
+        <button class="btn btn-abs" onclick="executeAbsen()">[ 2 ] TRANSMISI DATA ABSEN</button>
+    </div>
+
+    <div class="terminal-log" id="log">>_ SYSTEM_READY. MENUNGGU INISIALISASI...</div>
+</div>
+
+<script>
+    // --- MATRIX BACKGROUND ENGINE ---
+    const canvas = document.getElementById('matrix-bg');
+    const ctx = canvas.getContext('2d');
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.onresize = resize; resize();
+    const chars = "01ABCDEFHIJKLMNOPQRSTUVWXYZｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿ";
+    const drops = Array(Math.floor(canvas.width/18)).fill(1);
+    function drawMatrix() {
+        ctx.fillStyle = "rgba(0,0,0,0.05)"; ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle = "#0F0"; ctx.font = "15px monospace";
+        drops.forEach((y, i) => {
+            ctx.fillText(chars[Math.floor(Math.random()*chars.length)], i*18, y*18);
+            if(y*18 > canvas.height && Math.random() > 0.975) drops[i] = 0; drops[i]++;
+        });
+    }
+    setInterval(drawMatrix, 50);
+
+    // --- ABSENSI CORE LOGIC ---
+    const WORKER_URL = "https://absenonline.singlefightertrader.workers.dev"; // GANTI URL WORKER LO SENDIRI!
+    let stream = null;
+    let clickCount = 0;
+
+    // Load saved admin config
+    document.getElementById('adm_lat').value = localStorage.getItem('g_lat') || "-6.234890";
+    document.getElementById('adm_lng').value = localStorage.getItem('g_lng') || "106.989012";
+
+    function toggleAdmin() {
+        clickCount++;
+        if(clickCount >= 5) { document.getElementById('admin-panel').style.display='block'; clickCount=0; }
+    }
+
+    function saveAdmin() {
+        localStorage.setItem('g_lat', document.getElementById('adm_lat').value);
+        localStorage.setItem('g_lng', document.getElementById('adm_lng').value);
+        localStorage.setItem('g_pass', document.getElementById('adm_pass').value);
+        alert("SETTINGAN ADMIN TERKUNCI!");
+        document.getElementById('admin-panel').style.display='none';
+    }
+
+    async function initSystem() {
+        const log = document.getElementById('log');
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            document.getElementById('v').srcObject = stream;
+            document.getElementById('ls').style.display = 'block';
+            log.innerHTML += "<br>> SENSOR BIOMETRIK ONLINE. MENGIDENTIFIKASI OBJEK...";
+        } catch(e) { 
+            alert("IZINKAN KAMERA, BEGO!"); 
+            log.innerHTML += "<br>> ERROR: KAMERA DITOLAK.";
+        }
+    }
+
+    async function executeAbsen() {
+        const nama = document.getElementById('nama').value.trim();
+        const log = document.getElementById('log');
+        const video = document.getElementById('v');
+
+        if(!nama || !stream) return alert("NAMA KOSONG ATAU SENSOR BELUM AKTIF!");
+
+        // JEPRET FOTO OTOMATIS (SNAPSHOT)
+        const canvasSnap = document.createElement('canvas');
+        canvasSnap.width = video.videoWidth;
+        canvasSnap.height = video.videoHeight;
+        canvasSnap.getContext('2d').drawImage(video, 0, 0);
+        const fotoFinal = canvasSnap.toDataURL('image/jpeg', 0.5); // Kompres agar transmisi cepat
+
+        log.innerHTML += "<br>> MENGUNCI KOORDINAT GPS...";
+        
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            log.innerHTML += "<br>> TRANSMISI DATA + FOTO KE SERVER...";
+            try {
+                const res = await fetch(WORKER_URL, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        nama: nama,
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        t_lat: localStorage.getItem('g_lat'),
+                        t_lng: localStorage.getItem('g_lng'),
+                        pass: localStorage.getItem('g_pass'),
+                        foto: fotoFinal // FOTO ANAK BUAH DI SINI!
+                    })
+                });
+                const responseData = await res.json();
+                if(responseData.ok) {
+                    alert("BERHASIL! DATA & FOTO TERSIMPAN.");
+                    log.innerHTML += `<br>> [SUCCESS] VERIFIED. DISTANCE: ${responseData.dist}m. DATA ARCHIVED.`;
+                } else {
+                    alert("GAGAL: " + responseData.msg);
+                    log.innerHTML += `<br>> [FAILED] ${responseData.msg}`;
+                }
+            } catch(e) { 
+                alert("SERVER ERROR! CEK WORKER URL DI KODINGAN!"); 
+                log.innerHTML += "<br>> ERROR: KONEKSI WORKER GAGAL.";
+            }
+        }, (err) => { 
+            alert("GPS WAJIB ON!"); 
+            log.innerHTML += "<br>> ERROR: GPS TIDAK TERDETEKSI.";
+        }, { enableHighAccuracy: true });
+    }
+</script>
+</body>
+</html>
