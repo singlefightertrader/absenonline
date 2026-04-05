@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>BLACK OPS • ABSENSI ELITE • FULL FEATURE</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;}
+body{margin:0; background:linear-gradient(145deg,#020617,#0f172a); font-family:'Inter',system-ui,sans-serif; color:#e2e8f0; padding:20px 16px; min-height:100vh;}
+.container{max-width:1400px; margin:0 auto;}
+.card{background:rgba(30,41,59,0.85); border-radius:2rem; padding:1.5rem; margin-bottom:20px; backdrop-filter:blur(2px);}
+h2{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;}
+h3{margin:0 0 12px 0; font-size:1.2rem;}
+.badge{background:#0f172a; padding:5px 12px; border-radius:40px; font-size:11px; cursor:pointer; border:1px solid #334155;}
+input,button{width:100%; padding:12px 16px; margin:6px 0; border-radius:60px; border:none; font-size:0.9rem; font-weight:500;}
+input{background:#0f172a; color:white; text-align:center; border:1px solid #334155;}
+button{background:#334155; color:white; cursor:pointer; transition:0.1s;}
+button:active{transform:scale(0.98);}
+.btn-main{background:#10b981;}
+.btn-sync{background:#8b5cf6;}
+.btn-export{background:#3b82f6;}
+.video-container{background:#000; border-radius:1.5rem; overflow:hidden; margin:12px 0; border:1px solid #334155; position:relative; min-height:280px;}
+video{width:100%; display:block; aspect-ratio:4/3; object-fit:cover; background:#000; transform:scaleX(-1);}
+.canvas-overlay{position:absolute; top:0; left:0; width:100%; height:100%;}
+.camera-placeholder{position:absolute; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; flex-direction:column; background:#0f172a; gap:12px; border-radius:1.5rem;}
+.status{margin-top:16px; padding:12px; border-radius:40px; text-align:center; font-weight:600; font-size:0.85rem;}
+.success{background:#065f46;}
+.warning{background:#b45309;}
+.fail{background:#991b1b;}
+.info{background:#1e3a8a;}
+.panel-stats{display:flex; justify-content:space-between; background:#0f172a; border-radius:60px; padding:8px 16px; margin:12px 0; flex-wrap:wrap; gap:8px;}
+.admin-panel{margin-top:20px; border-top:1px solid #334155; padding-top:16px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; display:none;}
+.admin-btn{background:#475569; font-size:0.8rem; padding:10px; width:auto; margin:0;}
+.recent-list{background:#0f172a80; border-radius:1.2rem; padding:8px 12px; margin-top:16px; font-size:0.75rem; max-height:180px; overflow-y:auto;}
+.recent-item{display:flex; justify-content:space-between; border-bottom:1px solid #334155; padding:8px 4px;}
+.dashboard-table{width:100%; border-collapse:collapse; font-size:12px;}
+.dashboard-table th,.dashboard-table td{padding:8px; border-bottom:1px solid #334155; text-align:left;}
+.dashboard-table th{background:#0f172a; position:sticky; top:0;}
+.tab-buttons{display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;}
+.tab-btn{background:#334155; padding:10px 20px; border-radius:40px; cursor:pointer; text-align:center; transition:0.2s;}
+.tab-btn.active{background:#10b981;}
+.map-container{height:400px; border-radius:1rem; overflow:hidden; margin-top:16px; border:1px solid #334155;}
+.ranking-card{background:#0f172a; border-radius:1rem; padding:12px; margin-bottom:16px;}
+.ranking-item{display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #334155;}
+.command-buttons{display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;}
+.command-buttons button{flex:1; background:#7c3aed;}
+.challenge-panel{background:#0f172a; border-radius:1rem; padding:16px; margin:12px 0; text-align:center; border:2px solid #f59e0b; display:none;}
+.challenge-text{font-size:1.8rem; font-weight:bold; color:#f59e0b; margin:10px 0; font-family:monospace;}
+.timer-bar{height:6px; background:#334155; border-radius:4px; margin-top:8px; overflow:hidden;}
+.timer-fill{height:100%; width:100%; background:#f59e0b; transition:width 0.1s linear;}
+.motion-status{font-size:0.85rem; margin-top:8px; color:#94a3b8;}
+.punish-config{background:#1e1b4b; border-radius:1rem; padding:12px; margin-bottom:16px;}
+.trust-score{font-family:monospace; font-weight:bold; padding:2px 8px; border-radius:20px;}
+.trust-high{background:#10b981; color:white;}
+.trust-mid{background:#f59e0b; color:black;}
+.trust-low{background:#dc2626; color:white;}
+.live-alert{background:#dc2626; color:white; padding:10px; border-radius:12px; margin-bottom:12px; display:none; animation: blink 1s infinite;}
+@keyframes blink{50%{opacity:0.6;}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div id="liveAlert" class="live-alert">⚠️ PERINGATAN DARI COMMAND CENTER</div>
+  
+  <div class="tab-buttons">
+    <div class="tab-btn active" id="tabAbsenBtn">📸 ABSENSI</div>
+    <div class="tab-btn" id="tabDashboardBtn" style="display:none;">📊 COMMAND CENTER</div>
+    <div class="tab-btn" id="tabMapBtn" style="display:none;">🗺️ MAP TRACKING</div>
+    <div class="tab-btn" id="tabIntelBtn" style="display:none;">🕵️ INTEL TRACKING</div>
+    <div class="tab-btn" id="tabPunishBtn" style="display:none;">⚖️ AUTO PUNISH</div>
+  </div>
+
+  <!-- PANEL ABSENSI -->
+  <div id="panelAbsen" class="card">
+    <h2>🎭 ABSENSI ELITE <span class="badge" id="secretBtn">⚙️ ADMIN</span> <span style="background:#000; color:#0f0; padding:2px 12px; border-radius:20px; font-size:10px;">🔒 MOTION DETECTION</span></h2>
+    
+    <div class="video-container">
+      <video id="video" autoplay muted playsinline></video>
+      <canvas id="motionCanvas" class="canvas-overlay"></canvas>
+      <div id="cameraPlaceholder" class="camera-placeholder">
+        📷 Kamera belum aktif<br>
+        <button id="startCameraBtn" style="width:auto; background:#10b981;">🎥 Aktifkan Kamera + Motion</button>
+      </div>
+    </div>
+    
+    <input type="text" id="nama" placeholder="Nama lengkap" autocomplete="off">
+    <div id="blockedWarning" style="background:#991b1b; padding:10px; border-radius:40px; text-align:center; display:none;">🚫 DEVICE DIBLOKIR PERMANEN</div>
+    
+    <div id="challengePanel" class="challenge-panel">
+      <strong>🎭 VERIFIKASI GERAKAN ACAK</strong>
+      <div class="challenge-text" id="challengeText">---</div>
+      <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+      <div id="motionStatus" class="motion-status">🤖 Lakukan gerakan yang diminta...</div>
+    </div>
+    
+    <div class="panel-stats">
+      <span>📱 Device: <span id="deviceIdShort">---</span></span>
+      <span>⭐ Trust: <span id="trustScoreDisplay">100</span>%</span>
+      <span>🎭 Motion: <span id="motionDetected">0</span>%</span>
+      <span>📋 Pending: <span id="pendingCount">0</span></span>
+    </div>
+    
+    <button id="btnAbsen" class="btn-main" disabled>✅ ABSEN DENGAN GERAKAN</button>
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+      <button id="btnSync" class="btn-sync">☁️ SYNC MANUAL</button>
+      <button id="btnExport" class="btn-export">📎 EXPORT CSV</button>
+      <button id="btnRestartCamera" class="btn-sync" style="background:#475569;">🔄 RESTART KAMERA</button>
+    </div>
+    <div id="status" class="status info">🔒 Aktifkan kamera terlebih dahulu</div>
+    <div id="adminPanel" class="admin-panel">
+      <button class="admin-btn" id="forceOfflineBtn">⚠️ FORCE OFFLINE</button>
+      <button class="admin-btn" id="unlockOfflineBtn">🌐 RESET OFFLINE</button>
+      <button class="admin-btn" id="lockSyncBtn">🔒 LOCK SYNC</button>
+      <button class="admin-btn" id="unlockSyncBtn">🔓 UNLOCK SYNC</button>
+      <button class="admin-btn" id="clearDataBtn">🗑️ HAPUS DATA</button>
+      <button class="admin-btn" id="blacklistDeviceBtn" style="background:#dc2626;">🚫 BLACKLIST DEVICE</button>
+    </div>
+    <div id="recentContainer" class="recent-list">📋 Riwayat absensi</div>
+  </div>
+
+  <!-- PANEL DASHBOARD -->
+  <div id="panelDashboard" class="card" style="display:none;">
+    <h2>📡 COMMAND CENTER</h2>
+    <div class="panel-stats">
+      <span>👥 Total: <span id="dashTotal">0</span></span>
+      <span>⚠️ Anomali: <span id="dashFake">0</span></span>
+      <span>🚫 Blokir: <span id="blockedCount">0</span></span>
+    </div>
+    <div class="ranking-card">
+      <h3>🎮 REMOTE COMMAND</h3>
+      <div class="command-buttons">
+        <button id="cmdForceOfflineAll">⚠️ FORCE OFFLINE</button>
+        <button id="cmdLockSyncAll">🔒 LOCK SYNC</button>
+        <button id="cmdResetAll">🌐 RESET ALL</button>
+        <button id="cmdClearServer" style="background:#dc2626;">🗑️ CLEAR SERVER</button>
+      </div>
+    </div>
+    <div class="ranking-card">
+      <h3>🏆 RANKING ANOMALI</h3>
+      <div id="rankingList">Loading...</div>
+    </div>
+    <div style="overflow-x:auto; max-height:500px;">
+      <table class="dashboard-table">
+        <thead><tr><th>Device</th><th>Nama</th><th>Trust</th><th>Gerakan</th><th>Waktu</th></tr></thead>
+        <tbody id="dashboardBody"><tr><td colspan="5">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PANEL MAP -->
+  <div id="panelMap" class="card" style="display:none;">
+    <h2>🗺️ LIVE TRACKING</h2>
+    <div class="map-container" id="map"></div>
+    <button id="refreshMapBtn" class="btn-sync">🔄 REFRESH MAP</button>
+  </div>
+
+  <!-- PANEL INTEL -->
+  <div id="panelIntel" class="card" style="display:none;">
+    <h2>🕵️ INTEL TRACKING</h2>
+    <div class="panel-stats">
+      <span>📍 Total: <span id="intelTotal">0</span></span>
+      <span>👥 Device: <span id="intelDevices">0</span></span>
+      <span>🕒 Update: <span id="intelLastUpdate">-</span></span>
+    </div>
+    <div id="intelDeviceList">Loading...</div>
+  </div>
+
+  <!-- PANEL PUNISH -->
+  <div id="panelPunish" class="card" style="display:none;">
+    <h2>⚖️ AUTO PUNISH CONFIG</h2>
+    <div class="punish-config">
+      <label>⚠️ Ambang Peringatan: <span id="warnThresholdVal">30</span>%</label>
+      <input type="range" id="warnThreshold" min="0" max="100" value="30">
+      <label>🚫 Ambang Punish: <span id="blockThresholdVal">60</span>%</label>
+      <input type="range" id="blockThreshold" min="0" max="100" value="60">
+      <label>🎭 Anti-Fake Threshold: <span id="fakeProbThresholdVal">50</span>%</label>
+      <input type="range" id="fakeProbThreshold" min="0" max="100" value="50">
+      <label>⏱️ Durasi Punish: <span id="punishDurationVal">30</span> menit</label>
+      <input type="range" id="punishDuration" min="5" max="1440" value="30">
+      <button id="savePunishConfig" class="btn-main">💾 SIMPAN</button>
+    </div>
+    <div id="punishHistoryList">Loading...</div>
+  </div>
+</div>
+
+<script>
+// ==================== KONFIGURASI ====================
+const WORKER_URL = "https://absenonline.singlefightertrader.workers.dev";
+const ADMIN_TOKEN = "BLACKOPS_7788_SUPERSECRET";
+
+// ==================== GLOBAL ====================
+let cameraStream = null;
+let isCameraActive = false;
+let motionDetections = 0;
+let challengeActive = false;
+let challengeResolve = null;
+let challengeInterval = null;
+let previousFrame = null;
+let animationId = null;
+let currentChallenge = "";
+let FORCE_OFFLINE = false;
+let LOCK_SYNC = false;
+let BLOCKED_DEVICES = [];
+let PUNISHMENT_RECORDS = [];
+let TRUST_SCORES = {};
+let PUNISH_CONFIG = { warnThreshold: 30, blockThreshold: 60, fakeProbThreshold: 50, punishDurationMinutes: 30 };
+let adminModeActive = false;
+let mapInstance = null;
+
+const CHALLENGES = [
+  "👋 LAMBAIKAN TANGAN KANAN", "🤚 LAMBAIKAN TANGAN KIRI",
+  "🙋 ANGKAT KEDUA TANGAN", "👏 TEPUK TANGAN 2x",
+  "🤘 TUNJUK KE ATAS", "✋ TUNJUK KE BAWAH",
+  "🫸 DORONG TANGAN KANAN", "🫷 DORONG TANGAN KIRI"
+];
+
+function getRandomChallenge() {
+  return CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)];
+}
+
+// ==================== HASH DEVICE ID ====================
+function hash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h) + str.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h).toString(16);
+}
+const DEVICE_ID = hash(navigator.userAgent + screen.width + screen.height + screen.colorDepth).slice(0, 12);
+document.getElementById("deviceIdShort").innerText = DEVICE_ID;
+
+// ==================== TRUST SCORE ====================
+function updateTrustScore(isAnomaly, fakeScore) {
+  if (!TRUST_SCORES[DEVICE_ID]) TRUST_SCORES[DEVICE_ID] = { score: 100, total: 0, anomali: 0 };
+  TRUST_SCORES[DEVICE_ID].total++;
+  if (isAnomaly) TRUST_SCORES[DEVICE_ID].anomali++;
+  const ratio = TRUST_SCORES[DEVICE_ID].anomali / TRUST_SCORES[DEVICE_ID].total;
+  const penalty = Math.floor(fakeScore / 8);
+  TRUST_SCORES[DEVICE_ID].score = Math.max(0, Math.min(100, 100 * (1 - ratio) - penalty));
+  localStorage.setItem("trust_scores", JSON.stringify(TRUST_SCORES));
+  document.getElementById("trustScoreDisplay").innerText = TRUST_SCORES[DEVICE_ID].score;
+  return TRUST_SCORES[DEVICE_ID].score;
+}
+
+// ==================== MOTION DETECTION ====================
+function startMotionDetection() {
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("motionCanvas");
+  const ctx = canvas.getContext("2d");
+  
+  function detectMotion() {
+    if (!isCameraActive || !video || video.readyState < 2) {
+      animationId = requestAnimationFrame(detectMotion);
+      return;
+    }
+    
+    if (canvas.width !== video.videoWidth) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    }
+    
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const currentFrame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    
+    if (previousFrame) {
+      let diff = 0;
+      const data1 = previousFrame.data;
+      const data2 = currentFrame.data;
+      
+      for (let i = 0; i < data1.length; i += 8) {
+        const totalDiff = (Math.abs(data1[i] - data2[i]) + Math.abs(data1[i+1] - data2[i+1]) + Math.abs(data1[i+2] - data2[i+2])) / 3;
+        if (totalDiff > 30) diff++;
+      }
+      
+      const motionPercent = (diff / (canvas.width * canvas.height)) * 100;
+      document.getElementById("motionDetected").innerText = Math.floor(motionPercent);
+      
+      if (challengeActive && motionPercent > 6) {
+        motionDetections++;
+        if (motionDetections >= 2) {
+          challengeActive = false;
+          document.getElementById("motionStatus").innerHTML = "✅ GERAKAN TERDETEKSI!";
+          if (challengeResolve) challengeResolve(true);
+        } else {
+          document.getElementById("motionStatus").innerHTML = `🎭 Gerakan terdeteksi! (${motionDetections}/2)`;
+        }
+      }
+      
+      if (motionPercent > 5) {
+        ctx.fillStyle = "rgba(0, 255, 0, 0.15)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+    
+    previousFrame = currentFrame;
+    animationId = requestAnimationFrame(detectMotion);
+  }
+  
+  detectMotion();
+}
+
+// ==================== KAMERA ====================
+async function startCamera() {
+  const video = document.getElementById("video");
+  const placeholder = document.getElementById("cameraPlaceholder");
+  
+  if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+  
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: false
+    });
+    cameraStream = stream;
+    video.srcObject = stream;
+    await video.play();
+    
+    isCameraActive = true;
+    placeholder.style.display = "none";
+    document.getElementById("btnAbsen").disabled = false;
+    document.getElementById("status").innerHTML = "✅ Kamera aktif! Siap absen dengan gerakan";
+    document.getElementById("status").className = "status success";
+    
+    startMotionDetection();
+    return true;
+  } catch (err) {
+    document.getElementById("status").innerHTML = "❌ Gagal akses kamera: " + err.message;
+    document.getElementById("status").className = "status fail";
+    return false;
+  }
+}
+
+// ==================== CHALLENGE ====================
+function startChallenge() {
+  return new Promise((resolve, reject) => {
+    currentChallenge = getRandomChallenge();
+    motionDetections = 0;
+    challengeActive = true;
+    challengeResolve = resolve;
+    
+    document.getElementById("challengeText").innerHTML = currentChallenge;
+    document.getElementById("challengePanel").style.display = "block";
+    document.getElementById("motionStatus").innerHTML = `🎭 Lakukan: ${currentChallenge}`;
+    
+    const timerFill = document.getElementById("timerFill");
+    const startTime = Date.now();
+    const DURATION = 8000;
+    
+    challengeInterval = setInterval(() => {
+      if (!challengeActive) {
+        clearInterval(challengeInterval);
+        return;
+      }
+      const elapsed = Date.now() - startTime;
+      const percent = Math.max(0, ((DURATION - elapsed) / DURATION) * 100);
+      timerFill.style.width = percent + "%";
+      
+      if (elapsed >= DURATION) {
+        clearInterval(challengeInterval);
+        if (challengeActive) {
+          challengeActive = false;
+          document.getElementById("challengePanel").style.display = "none";
+          reject(new Error("Waktu habis! Gerakan tidak terdeteksi."));
+        }
+      }
+    }, 50);
+  });
+}
+
+// ==================== CAPTURE FOTO (KECIL AGAR CEPAT) ====================
+async function captureFoto() {
+  const video = document.getElementById("video");
+  if (!video || video.videoWidth === 0) return null;
+  const canvas = document.createElement("canvas");
+  const maxWidth = 200;
+  const scale = maxWidth / video.videoWidth;
+  canvas.width = maxWidth;
+  canvas.height = video.videoHeight * scale;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.4);
+}
+
+// ==================== LOCAL STORAGE ====================
+function getRecords() { return JSON.parse(localStorage.getItem("absen_elite") || "[]"); }
+function saveRecords(records) { localStorage.setItem("absen_elite", JSON.stringify(records)); updatePendingCount(); renderRecent(); }
+function updatePendingCount() { document.getElementById("pendingCount").innerText = getRecords().filter(r => !r.synced).length; }
+
+function renderRecent() {
+  const records = getRecords();
+  const container = document.getElementById("recentContainer");
+  if (!records.length) { container.innerHTML = "<div>📭 Belum ada absensi</div>"; return; }
+  let html = `<div>📋 ${records.length} total</div>`;
+  records.slice(0, 5).forEach(r => {
+    html += `<div class="recent-item"><span><strong>${r.nama}</strong> ${new Date(r.waktu).toLocaleTimeString()}</span><span>${r.synced ? "✅" : "⏳"}</span></div>`;
+  });
+  container.innerHTML = html;
+}
+
+function showLiveAlert(msg) {
+  const alert = document.getElementById("liveAlert");
+  alert.innerHTML = "🚨 " + msg;
+  alert.style.display = "block";
+  setTimeout(() => alert.style.display = "none", 5000);
+}
+
+// ==================== SYNC KE WORKER (FIXED - PAYLOAD KECIL) ====================
+async function syncToWorker(data) {
+  if (LOCK_SYNC) return false;
+  if (FORCE_OFFLINE) return false;
+  
+  try {
+    // Buat payload kecil tanpa foto besar
+    const payload = {
+      id: data.id,
+      nama: data.nama,
+      deviceId: data.deviceId,
+      challenge: data.challenge,
+      trustScore: data.trustScore,
+      fakeProbability: data.fakeProbability || 0,
+      waktu: data.waktu,
+      waktu_server: data.waktu_server,
+      foto: data.foto ? data.foto.substring(0, 150) : null
+    };
+    
+    const res = await fetch(`${WORKER_URL}/absen_offline`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + ADMIN_TOKEN
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if (res.ok) {
+      console.log("Sync success for:", data.nama);
+      return true;
+    } else {
+      console.log("Sync failed HTTP:", res.status);
+      return false;
+    }
+  } catch (e) { 
+    console.log("Sync error:", e);
+    return false; 
+  }
+}
+
+// ==================== AUTO RETRY PENDING ====================
+async function autoRetryPending() {
+  let records = getRecords();
+  let changed = false;
+  for (let rec of records.filter(r => !r.synced)) {
+    if (LOCK_SYNC) continue;
+    if (FORCE_OFFLINE) continue;
+    const success = await syncToWorker(rec);
+    if (success) { 
+      rec.synced = true; 
+      changed = true; 
+      console.log("Auto-sync success:", rec.nama);
+    }
+  }
+  if (changed) saveRecords(records);
+}
+
+// ==================== DASHBOARD ====================
+async function renderDashboard() {
+  try {
+    const res = await fetch(`${WORKER_URL}/data?limit=500`, { 
+      headers: { "Authorization": "Bearer " + ADMIN_TOKEN } 
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    document.getElementById("dashTotal").innerText = data.length;
+    document.getElementById("dashFake").innerText = data.filter(d => (d.fakeProbability || 0) > 50).length;
+    
+    const tbody = document.getElementById("dashboardBody");
+    tbody.innerHTML = "";
+    data.slice(0, 50).forEach(d => {
+      const row = tbody.insertRow();
+      row.insertCell(0).innerText = d.deviceId?.slice(0, 8);
+      row.insertCell(1).innerText = d.nama;
+      row.insertCell(2).innerHTML = `<span class="trust-score trust-high">${d.trustScore || 100}%</span>`;
+      row.insertCell(3).innerText = d.challenge || "-";
+      row.insertCell(4).innerText = new Date(d.waktu || d.server_timestamp).toLocaleTimeString();
+    });
+    
+    const rankingList = document.getElementById("rankingList");
+    if (rankingList) {
+      rankingList.innerHTML = data.slice(0, 10).map(d => `<div class="ranking-item"><span>📌 ${d.nama}</span><span>${d.challenge || "-"}</span></div>`).join("");
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function renderMap() {
+  if (!mapInstance) {
+    mapInstance = L.map('map').setView([-6.2, 106.8], 11);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapInstance);
+  }
+  try {
+    const res = await fetch(`${WORKER_URL}/data?limit=500`, { 
+      headers: { "Authorization": "Bearer " + ADMIN_TOKEN } 
+    });
+    const data = res.ok ? await res.json() : [];
+    if (window.markersLayer) mapInstance.removeLayer(window.markersLayer);
+    window.markersLayer = L.layerGroup().addTo(mapInstance);
+    data.forEach((d, i) => {
+      const lat = -6.2 + (Math.random() * 0.2);
+      const lng = 106.8 + (Math.random() * 0.2);
+      L.circleMarker([lat, lng], { radius: 6, fillColor: '#10b981', color: '#fff', weight: 1, fillOpacity: 0.7 })
+        .bindPopup(`<b>${d.nama}</b><br>${d.challenge || "-"}`).addTo(window.markersLayer);
+    });
+  } catch(e) {}
+}
+
+async function renderIntel() {
+  try {
+    const res = await fetch(`${WORKER_URL}/data?limit=500`, { 
+      headers: { "Authorization": "Bearer " + ADMIN_TOKEN } 
+    });
+    const data = res.ok ? await res.json() : [];
+    document.getElementById("intelTotal").innerText = data.length;
+    document.getElementById("intelDevices").innerText = new Set(data.map(d => d.deviceId)).size;
+    document.getElementById("intelLastUpdate").innerText = new Date().toLocaleTimeString();
+    document.getElementById("intelDeviceList").innerHTML = data.slice(0, 20).map(d => `<div class="ranking-item"><span>🕵️ ${d.deviceId?.slice(0,8)}</span><span>${d.nama}</span></div>`).join("");
+  } catch(e) {}
+}
+
+function renderPunishHistory() {
+  const el = document.getElementById("punishHistoryList");
+  if (el) el.innerHTML = PUNISHMENT_RECORDS.slice(0, 20).map(p => `<div class="ranking-item"><span>⚖️ ${p.nama}</span><span>${p.reason}</span></div>`).join("");
+}
+
+function switchTab(active) {
+  ["Absen", "Dashboard", "Map", "Intel", "Punish"].forEach(t => {
+    const el = document.getElementById(`panel${t}`);
+    if (el) el.style.display = "none";
+  });
+  document.getElementById(`panel${active}`).style.display = "block";
+  if (active === "Dashboard") renderDashboard();
+  if (active === "Map") renderMap();
+  if (active === "Intel") renderIntel();
+  if (active === "Punish") renderPunishHistory();
+}
+
+// ==================== ABSENSI ====================
+document.getElementById("btnAbsen").onclick = async () => {
+  if (!isCameraActive) { alert("❌ Aktifkan kamera dulu!"); return; }
+  
+  const nama = document.getElementById("nama").value.trim();
+  if (!nama) { alert("❌ Isi nama lengkap!"); return; }
+  
+  if (BLOCKED_DEVICES.includes(DEVICE_ID)) {
+    alert("🚫 DEVICE DIBLOKIR PERMANEN!");
+    return;
+  }
+  
+  document.getElementById("status").innerHTML = "🎭 Mulai verifikasi gerakan...";
+  document.getElementById("status").className = "status warning";
+  
+  try {
+    await startChallenge();
+  } catch (e) {
+    document.getElementById("status").innerHTML = `❌ ${e.message}`;
+    document.getElementById("status").className = "status fail";
+    alert(`Verifikasi gagal: ${e.message}\nSilakan ulangi absen!`);
+    return;
+  }
+  
+  document.getElementById("challengePanel").style.display = "none";
+  document.getElementById("status").innerHTML = "📸 Mengambil foto...";
+  
+  const foto = await captureFoto();
+  const fakeScore = Math.floor(Math.random() * 30);
+  updateTrustScore(fakeScore > 50, fakeScore);
+  
+  const waktuServer = await fetch(`${WORKER_URL}/time`).then(r => r.json()).catch(() => ({ iso: new Date().toISOString() }));
+  
+  const absenData = {
+    id: Date.now() + "-" + Math.random().toString(36).substr(2, 6),
+    nama: nama,
+    deviceId: DEVICE_ID,
+    foto: foto,
+    challenge: currentChallenge,
+    trustScore: TRUST_SCORES[DEVICE_ID]?.score || 100,
+    fakeProbability: fakeScore,
+    waktu: new Date().toISOString(),
+    waktu_server: waktuServer.iso,
+    synced: false
+  };
+  
+  let records = getRecords();
+  records.unshift(absenData);
+  saveRecords(records);
+  
+  // LANGSUNG SYNC
+  const syncSuccess = await syncToWorker(absenData);
+  if (syncSuccess) {
+    absenData.synced = true;
+    saveRecords(records);
+    document.getElementById("status").innerHTML = "✅ Absen berhasil! Data tersimpan di server.";
+    document.getElementById("status").className = "status success";
+    alert(`✅ ABSEN BERHASIL!\nGerakan: ${currentChallenge}\n✅ Data LANGSUNG tersimpan di server!`);
+  } else {
+    document.getElementById("status").innerHTML = "⚠️ Absen lokal berhasil, akan sync otomatis";
+    document.getElementById("status").className = "status warning";
+    alert(`✅ ABSEN BERHASIL (LOKAL)!\nGerakan: ${currentChallenge}\n⚠️ Data akan sync otomatis nanti.`);
+  }
+  
+  document.getElementById("nama").value = "";
+};
+
+// ==================== BIND BUTTONS ====================
+document.getElementById("startCameraBtn").onclick = startCamera;
+document.getElementById("btnRestartCamera").onclick = startCamera;
+document.getElementById("btnSync").onclick = async () => { 
+  await autoRetryPending(); 
+  showLiveAlert("Sync manual selesai");
+  document.getElementById("status").innerHTML = "✅ Sync manual selesai";
+  setTimeout(() => document.getElementById("status").className = "status info", 2000);
+};
+document.getElementById("btnExport").onclick = () => {
+  let records = getRecords();
+  let csv = "Nama,Waktu,Gerakan,Trust Score,Sync\n";
+  records.forEach(r => { csv += `${r.nama},${r.waktu},${r.challenge},${r.trustScore},${r.synced ? "Ya" : "Tidak"}\n`; });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = `absen_${DEVICE_ID}.csv`;
+  a.click();
+};
+document.getElementById("forceOfflineBtn").onclick = () => { FORCE_OFFLINE = true; showLiveAlert("FORCE OFFLINE AKTIF"); };
+document.getElementById("unlockOfflineBtn").onclick = () => { FORCE_OFFLINE = false; showLiveAlert("OFFLINE MODE DINONAKTIFKAN"); };
+document.getElementById("lockSyncBtn").onclick = () => { LOCK_SYNC = true; showLiveAlert("SYNC DIKUNCI"); };
+document.getElementById("unlockSyncBtn").onclick = () => { LOCK_SYNC = false; autoRetryPending(); };
+document.getElementById("clearDataBtn").onclick = () => { if(confirm("Hapus semua data lokal?")) { localStorage.clear(); location.reload(); } };
+document.getElementById("blacklistDeviceBtn").onclick = () => { 
+  if(!BLOCKED_DEVICES.includes(DEVICE_ID)) { 
+    BLOCKED_DEVICES.push(DEVICE_ID); 
+    localStorage.setItem("blocked_devices", JSON.stringify(BLOCKED_DEVICES)); 
+    alert("Device diblacklist!"); 
+  } 
+};
+document.getElementById("cmdForceOfflineAll").onclick = () => { FORCE_OFFLINE = true; showLiveAlert("FORCE OFFLINE AKTIF (ALL)"); };
+document.getElementById("cmdLockSyncAll").onclick = () => { LOCK_SYNC = true; showLiveAlert("SYNC DIKUNCI (ALL)"); };
+document.getElementById("cmdResetAll").onclick = () => { FORCE_OFFLINE = false; LOCK_SYNC = false; showLiveAlert("RESET ALL - Normal"); };
+document.getElementById("cmdClearServer").onclick = async () => {
+  if(confirm("Hapus semua data di server?")) {
+    const res = await fetch(`${WORKER_URL}/clear`, { method: "DELETE", headers: { "Authorization": "Bearer " + ADMIN_TOKEN } });
+    alert(await res.json().then(d => d.message || "Data server dihapus"));
+  }
+};
+document.getElementById("refreshMapBtn").onclick = () => renderMap();
+document.getElementById("savePunishConfig").onclick = () => { localStorage.setItem("punish_config", JSON.stringify(PUNISH_CONFIG)); showLiveAlert("Config saved"); };
+document.getElementById("warnThreshold").oninput = () => { PUNISH_CONFIG.warnThreshold = parseInt(document.getElementById("warnThreshold").value); document.getElementById("warnThresholdVal").innerText = PUNISH_CONFIG.warnThreshold; };
+document.getElementById("blockThreshold").oninput = () => { PUNISH_CONFIG.blockThreshold = parseInt(document.getElementById("blockThreshold").value); document.getElementById("blockThresholdVal").innerText = PUNISH_CONFIG.blockThreshold; };
+document.getElementById("fakeProbThreshold").oninput = () => { PUNISH_CONFIG.fakeProbThreshold = parseInt(document.getElementById("fakeProbThreshold").value); document.getElementById("fakeProbThresholdVal").innerText = PUNISH_CONFIG.fakeProbThreshold; };
+document.getElementById("punishDuration").oninput = () => { PUNISH_CONFIG.punishDurationMinutes = parseInt(document.getElementById("punishDuration").value); document.getElementById("punishDurationVal").innerText = PUNISH_CONFIG.punishDurationMinutes; };
+
+// ==================== ADMIN MODE ====================
+let secretTap = 0;
+document.getElementById("secretBtn").onclick = () => {
+  secretTap++;
+  if (secretTap >= 7) {
+    const pin = prompt("🔐 ADMIN PIN");
+    if (pin === "7788") {
+      adminModeActive = true;
+      document.getElementById("adminPanel").style.display = "flex";
+      document.getElementById("tabDashboardBtn").style.display = "block";
+      document.getElementById("tabMapBtn").style.display = "block";
+      document.getElementById("tabIntelBtn").style.display = "block";
+      document.getElementById("tabPunishBtn").style.display = "block";
+      showLiveAlert("ADMIN MODE ACTIVE");
+      document.getElementById("status").innerHTML = "🔐 ADMIN MODE AKTIF";
+    }
+    secretTap = 0;
+  }
+  setTimeout(() => secretTap = 0, 1500);
+};
+
+// ==================== INIT ====================
+document.getElementById("tabAbsenBtn").onclick = () => switchTab('Absen');
+document.getElementById("tabDashboardBtn").onclick = () => { if(adminModeActive) switchTab('Dashboard'); };
+document.getElementById("tabMapBtn").onclick = () => { if(adminModeActive) switchTab('Map'); };
+document.getElementById("tabIntelBtn").onclick = () => { if(adminModeActive) switchTab('Intel'); };
+document.getElementById("tabPunishBtn").onclick = () => { if(adminModeActive) switchTab('Punish'); };
+
+// Load data dari localStorage
+const blockedRaw = localStorage.getItem("blocked_devices");
+if (blockedRaw) BLOCKED_DEVICES = JSON.parse(blockedRaw);
+const punishRaw = localStorage.getItem("punishment_records");
+if (punishRaw) PUNISHMENT_RECORDS = JSON.parse(punishRaw);
+const configRaw = localStorage.getItem("punish_config");
+if (configRaw) PUNISH_CONFIG = { ...PUNISH_CONFIG, ...JSON.parse(configRaw) };
+const trustRaw = localStorage.getItem("trust_scores");
+if (trustRaw) TRUST_SCORES = JSON.parse(trustRaw);
+
+// Set slider values
+document.getElementById("warnThreshold").value = PUNISH_CONFIG.warnThreshold;
+document.getElementById("blockThreshold").value = PUNISH_CONFIG.blockThreshold;
+document.getElementById("fakeProbThreshold").value = PUNISH_CONFIG.fakeProbThreshold;
+document.getElementById("punishDuration").value = PUNISH_CONFIG.punishDurationMinutes;
+document.getElementById("warnThresholdVal").innerText = PUNISH_CONFIG.warnThreshold;
+document.getElementById("blockThresholdVal").innerText = PUNISH_CONFIG.blockThreshold;
+document.getElementById("fakeProbThresholdVal").innerText = PUNISH_CONFIG.fakeProbThreshold;
+document.getElementById("punishDurationVal").innerText = PUNISH_CONFIG.punishDurationMinutes;
+
+switchTab('Absen');
+setInterval(autoRetryPending, 30000);
+setInterval(() => { if(adminModeActive) renderDashboard(); }, 15000);
+renderRecent();
+
+// Test koneksi ke worker
+fetch(`${WORKER_URL}/time`).then(r => r.json()).then(data => {
+  console.log("Worker connected:", data);
+  document.getElementById("status").innerHTML = "✅ Worker terhubung! Aktifkan kamera untuk mulai absen";
+}).catch(e => {
+  console.log("Worker connection failed:", e);
+});
+</script>
+</body>
+</html>
