@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLACK OPS • ABSEN</title>
+<style>
+body{background:#0f172a; color:white; font-family:sans-serif; padding:20px;}
+.card{background:#1e293b; border-radius:20px; padding:20px;}
+button{background:#10b981; border:none; padding:15px; border-radius:40px; color:white; font-size:16px; width:100%; margin:10px 0;}
+input{background:#0f172a; border:1px solid #334155; padding:15px; border-radius:40px; color:white; width:100%; margin:10px 0;}
+.status{padding:12px; border-radius:40px; text-align:center; margin-top:10px;}
+.success{background:#065f46;}
+.fail{background:#991b1b;}
+.warning{background:#b45309;}
+.info{background:#1e3a8a;}
+video{width:100%; border-radius:20px; background:#000; margin:10px 0; transform:scaleX(-1);}
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>📸 ABSENSI</h2>
+  <video id="video" autoplay muted playsinline></video>
+  <input type="text" id="nama" placeholder="Nama lengkap">
+  <div style="background:#0f172a; padding:15px; border-radius:20px; margin:10px 0; text-align:center;">
+    <div style="font-size:18px; font-weight:bold; color:#f59e0b;">Ketik: ANGKAT TANGAN</div>
+    <input type="text" id="challengeInput" placeholder="Ketik perintah di atas">
+  </div>
+  <div class="status info" id="status">📱 Siap</div>
+  <button id="startCameraBtn">🎥 AKTIFKAN KAMERA</button>
+  <button id="absenBtn" disabled>✅ ABSEN</button>
+  <div style="font-size:11px; text-align:center; margin-top:10px;" id="deviceInfo"></div>
+</div>
+
+<script>
+const WORKER_URL = "https://absenonline.singlefightertrader.workers.dev";
+let cameraActive = false;
+let stream = null;
+
+function getDeviceId() {
+  let str = navigator.userAgent + screen.width + screen.height;
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash = hash | 0;
+  }
+  if (hash < 0) hash = -hash;
+  return hash.toString(16).slice(0, 12);
+}
+const DEVICE_ID = getDeviceId();
+document.getElementById("deviceInfo").innerHTML = "Device: " + DEVICE_ID;
+
+async function startCamera() {
+  try {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+    document.getElementById("video").srcObject = stream;
+    cameraActive = true;
+    document.getElementById("startCameraBtn").style.display = "none";
+    document.getElementById("absenBtn").disabled = false;
+    document.getElementById("status").innerHTML = "✅ Kamera aktif!";
+    document.getElementById("status").className = "status success";
+  } catch(e) {
+    document.getElementById("status").innerHTML = "❌ Gagal: " + e.message;
+    document.getElementById("status").className = "status fail";
+  }
+}
+
+async function captureFoto() {
+  const video = document.getElementById("video");
+  if (!video || video.videoWidth === 0) return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = 150;
+  canvas.height = 150 * (video.videoHeight / video.videoWidth);
+  canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.5);
+}
+
+document.getElementById("absenBtn").onclick = async () => {
+  if (!cameraActive) { alert("Aktifkan kamera dulu!"); return; }
+  const nama = document.getElementById("nama").value.trim();
+  if (nama === "") { alert("Isi nama!"); return; }
+  const userInput = document.getElementById("challengeInput").value.trim().toUpperCase();
+  if (userInput !== "ANGKAT TANGAN") { alert("SALAH! Harus ketik: ANGKAT TANGAN"); return; }
+  
+  document.getElementById("status").innerHTML = "📸 Memproses...";
+  document.getElementById("status").className = "status warning";
+  
+  const foto = await captureFoto();
+  const absenData = {
+    nama: nama,
+    deviceId: DEVICE_ID,
+    foto: foto,
+    challenge: "ANGKAT TANGAN",
+    waktu: new Date().toISOString()
+  };
+  
+  try {
+    const res = await fetch(WORKER_URL + "/absen_offline", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(absenData)
+    });
+    const result = await res.json();
+    if (result.success) {
+      document.getElementById("status").innerHTML = "✅ Berhasil! Data tersimpan.";
+      document.getElementById("status").className = "status success";
+      alert("✅ BERHASIL! " + nama);
+    } else {
+      throw new Error("Gagal");
+    }
+  } catch(e) {
+    document.getElementById("status").innerHTML = "❌ Gagal menyimpan!";
+    document.getElementById("status").className = "status fail";
+    alert("❌ GAGAL! Cek koneksi.");
+  }
+  document.getElementById("challengeInput").value = "";
+  document.getElementById("nama").value = "";
+};
+
+document.getElementById("startCameraBtn").onclick = startCamera;
+
+// Test koneksi worker
+fetch(WORKER_URL + "/time")
+  .then(() => console.log("Worker OK"))
+  .catch(() => console.log("Worker error"));
+</script>
+</body>
+</html>
