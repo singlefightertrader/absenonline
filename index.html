@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GIP | COMMAND CENTER</title>
+    <style>
+        :root { --neon: #10b981; --bg: #020617; --card: #0f172a; }
+        body { background: var(--bg); color: #f8fafc; font-family: 'Courier New', monospace; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; overflow: hidden; }
+        .container { background: var(--card); padding: 30px; border-radius: 5px; width: 100%; max-width: 420px; border: 2px solid var(--neon); box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); position: relative; }
+        .header { text-align: center; border-bottom: 2px solid var(--neon); margin-bottom: 20px; padding-bottom: 10px; }
+        .header h1 { font-size: 1.5rem; margin: 0; letter-spacing: 3px; color: var(--neon); text-shadow: 0 0 10px var(--neon); }
+        .header p { font-size: 0.7rem; margin: 5px 0 0; opacity: 0.7; text-transform: uppercase; }
+        video { width: 100%; border-radius: 3px; background: #000; transform: scaleX(-1); border: 1px solid rgba(16, 185, 129, 0.5); filter: contrast(1.1) brightness(0.9); }
+        .input-group { margin: 20px 0; position: relative; }
+        input { width: 100%; padding: 15px; border: 1px solid #334155; background: #000; color: var(--neon); font-family: inherit; font-size: 1rem; box-sizing: border-box; outline: none; border-left: 5px solid var(--neon); }
+        input::placeholder { color: rgba(16, 185, 129, 0.3); }
+        .btn-zone { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        button { padding: 15px; border: 1px solid var(--neon); background: transparent; color: var(--neon); font-weight: bold; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 2px; }
+        button:hover { background: var(--neon); color: var(--bg); box-shadow: 0 0 15px var(--neon); }
+        button:active { transform: scale(0.95); }
+        #log { margin-top: 20px; font-size: 0.75rem; background: #000; padding: 10px; border: 1px solid #334155; min-height: 50px; overflow: hidden; color: #94a3b8; border-left: 3px solid #3b82f6; }
+        .scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: rgba(16, 185, 129, 0.3); animation: scan 3s linear infinite; pointer-events: none; }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="scan-line"></div>
+    <div class="header">
+        <h1>GIP ENGINE V14</h1>
+        <p>GIS 150kV JKT11 SECURE ACCESS</p>
+    </div>
+    
+    <video id="v" autoplay playsinline></video>
+    
+    <div class="input-group">
+        <input type="text" id="n" placeholder="[ENTER OPERATOR NAME]" onfocus="boot()">
+    </div>
+
+    <div class="btn-zone">
+        <button onclick="boot()">01. INITIALIZE SYSTEM</button>
+        <button style="border-color: #ef4444; color: #ef4444;" onclick="submit()">02. EXECUTE ATTENDANCE</button>
+    </div>
+
+    <div id="log">SYSTEM STATUS: STANDBY...<br>>_ AWAITING INPUT</div>
+</div>
+
+<script>
+    const API = "URL_WORKER_LO_DI_SINI"; // GANTI GOBLOK!
+    let camActive = false;
+
+    async function boot() {
+        if(camActive) return;
+        const log = document.getElementById('log');
+        log.innerHTML = "> ACCESSING HARDWARE...<br>> INITIALIZING OPTIC SENSORS...";
+        
+        try {
+            const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 640 } });
+            document.getElementById('v').srcObject = s;
+            camActive = true;
+            log.innerHTML = "> SYSTEM ONLINE.<br>> GPS LINK ESTABLISHED.<br>> CAMERA ACTIVE.";
+        } catch (e) { 
+            log.innerHTML = "> ERROR: SENSOR ACCESS DENIED.<br>> CHECK PERMISSIONS!";
+        }
+    }
+
+    async function submit() {
+        const nama = document.getElementById('n').value.trim();
+        const log = document.getElementById('log');
+        if (!nama || !camActive) return alert("COMPLETE PRE-FLIGHT CHECK!");
+
+        log.innerHTML = "> ENCRYPTING PAYLOAD...<br>> VALIDATING COORDINATES...";
+
+        navigator.geolocation.getCurrentPosition(async (p) => {
+            const canvas = document.createElement("canvas");
+            canvas.width = 640; canvas.height = 480;
+            canvas.getContext("2d").drawImage(document.getElementById('v'), 0, 0, 640, 480);
+            
+            try {
+                const cReq = await fetch(API + "/challenge");
+                const cData = await cReq.json();
+
+                const res = await fetch(API + "/absen", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        nama: nama,
+                        challenge: cData.code,
+                        lat: p.coords.latitude,
+                        lng: p.coords.longitude,
+                        accuracy: p.coords.accuracy,
+                        gps_time: p.timestamp,
+                        foto: canvas.toDataURL("image/jpeg", 0.7)
+                    })
+                });
+
+                const r = await res.json();
+                if(r.ok) {
+                    log.innerHTML = `<b style='color:#10b981'>> SUCCESS: ${r.msg.toUpperCase()}</b><br>> LOG SAVED TO KV.`;
+                    alert("TRANSMISSION COMPLETE");
+                } else {
+                    log.innerHTML = `<b style='color:#ef4444'>> FAILED: ${r.msg.toUpperCase()}</b><br>> ACCESS TERMINATED.`;
+                }
+            } catch (e) { log.innerHTML = "> ERROR: SERVER DISCONNECTED."; }
+        }, (e) => {
+            log.innerHTML = "> ERROR: GPS SIGNAL LOST.";
+        }, { enableHighAccuracy: true });
+    }
+</script>
+</body>
+</html>
